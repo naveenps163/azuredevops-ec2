@@ -15,11 +15,13 @@ stages:
     jobs:
       - job: Plan
         displayName: 'Plan'
-        steps:           # <-- Needed!
+        steps:
           - checkout: self
 
           - task: TerraformInstaller@1
             displayName: 'Install Terraform'
+            inputs:
+              terraformVersion: 'latest'
 
           - task: TerraformCLI@5
             displayName: 'Terraform Init'
@@ -48,11 +50,13 @@ stages:
         displayName: 'Apply'
         dependsOn: Plan
         condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
-        steps:         # <-- Needed!
+        steps:
           - checkout: self
 
           - task: TerraformInstaller@1
             displayName: 'Install Terraform'
+            inputs:
+              terraformVersion: 'latest'
 
           - task: TerraformCLI@5
             displayName: 'Terraform Apply'
