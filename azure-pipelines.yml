@@ -3,8 +3,8 @@ trigger:
 
 # agent pool details: name --> name of the agent pool, vmImage --> Image ID of VM
 pool:
-  name: aws-pool
-  vmImage: docker-server
+  name: 
+  vmImage: 'ubuntu-latest'
 
 # variables to be used and the group name of the variables
 variables:
