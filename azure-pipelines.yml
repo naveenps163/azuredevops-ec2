@@ -4,7 +4,7 @@ trigger:
       - main
 
 variables:
-  - group: terraform-envs  # includes AWS_REGION, TF_VAR_ami_id, TF_VAR_instance_type
+  - group: terraform-envs
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -13,20 +13,33 @@ stages:
 - stage: Terraform
   jobs:
   - job: Plan
-    displayName: 'Terraform Plan'
+    displayName: 'Terraform Init & Plan'
     steps:
-    - task: TerraformCLI@1
-      displayName: 'Init Terraform'
-      inputs:
-        command: init
-        workingDirectory: terraform
+    - checkout: self
 
-    - task: TerraformCLI@1
-      displayName: 'Plan Terraform'
+    - task: TerraformInstaller@1
+      displayName: 'Install Terraform'
       inputs:
-        command: plan
-        workingDirectory: terraform
-        environmentServiceNameAws: 'AWS_CONNECTION'
+        terraformVersion: 'latest'
+
+    - task: TerraformCLI@5
+      displayName: 'Terraform Init'
+      inputs:
+        provider: 'aws'
+        command: 'init'
+        workingDirectory: 'terraform'
+      env:
+        AWS_REGION: $(AWS_REGION)
+
+    - task: TerraformCLI@5
+      displayName: 'Terraform Plan'
+      name: tfPlan
+      inputs:
+        provider: 'aws'
+        command: 'plan'
+        workingDirectory: 'terraform'
+        environmentServiceNameAWS: 'AWS_CONNECTION'
+        commandOptions: '-out=tfplan'
       env:
         AWS_REGION: $(AWS_REGION)
         TF_VAR_ami_id: $(TF_VAR_ami_id)
@@ -35,15 +48,22 @@ stages:
   - job: Apply
     displayName: 'Terraform Apply'
     dependsOn: Plan
+    condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
     steps:
-    - task: TerraformCLI@1
-      displayName: 'Apply Terraform'
+    - checkout: self
+
+    - task: TerraformInstaller@1
+      displayName: 'Install Terraform'
       inputs:
-        command: apply
-        workingDirectory: terraform
-        args: '-auto-approve'
-        environmentServiceNameAws: 'AWS_CONNECTION'
+        terraformVersion: 'latest'
+
+    - task: TerraformCLI@5
+      displayName: 'Terraform Apply'
+      inputs:
+        provider: 'aws'
+        command: 'apply'
+        workingDirectory: 'terraform'
+        environmentServiceNameAWS: 'AWS_CONNECTION'
+        commandOptions: 'tfplan'
       env:
         AWS_REGION: $(AWS_REGION)
-        TF_VAR_ami_id: $(TF_VAR_ami_id)
-        TF_VAR_instance_type: $(TF_VAR_instance_type)
